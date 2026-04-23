@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cruscotto Monitoraggio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body class="page-select">
+
+  <div class="select-wrap">
+    <div class="select-header">
+      <div class="select-logo">C</div>
+      <h1>Cruscotto Monitoraggio</h1>
+      <p>Seleziona il cliente</p>
+    </div>
+    <div class="client-grid" id="client-grid">
+      <div class="client-skeleton"></div>
+      <div class="client-skeleton"></div>
+    </div>
+    <p class="select-footer" id="select-footer"></p>
+  </div>
+
+  <script type="module">
+    const GIST_ID = '84ac17615a0db0fbd81758a844daeef4';
+    const RAW     = `https://gist.githubusercontent.com/M1ch3l3Ga/${GIST_ID}/raw/clients.json`;
+
+    async function load() {
+      try {
+        const r   = await fetch(RAW + '?t=' + Date.now());
+        const clients = await r.json();
+        const grid = document.getElementById('client-grid');
+        grid.innerHTML = '';
+        clients.forEach(c => {
+          const card = document.createElement('a');
+          card.className = 'client-card';
+          card.href = `dashboard.html?client=${c.id}`;
+          card.innerHTML = `<div class="client-icon">🏢</div><div class="client-name">${c.name}</div>`;
+          grid.appendChild(card);
+        });
+        document.getElementById('select-footer').textContent = '';
+      } catch(e) {
+        document.getElementById('select-footer').textContent = 'Errore nel caricamento clienti.';
+      }
+    }
+    load();
+  </script>
+</body>
+</html>
