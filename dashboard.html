@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cruscotto Monitoraggio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-brand">
+      <a href="index.html" class="back-btn" title="Torna ai clienti">←</a>
+      <div class="logo">C</div>
+      <div>
+        <h1 id="header-title">Cruscotto Monitoraggio</h1>
+        <span id="header-sub">caricamento...</span>
+      </div>
+      <div id="db-size-badge" class="db-size-badge">— GB</div>
+    </div>
+    <div class="header-right">
+      <span class="last-update" id="last-update">—</span>
+    </div>
+  </header>
+
+  <main class="main" id="main">
+    <div class="loading-wrap"><div class="spinner"></div><p>Caricamento dati...</p></div>
+  </main>
+
+  <script type="module">
+    const GIST_ID = '84ac17615a0db0fbd81758a844daeef4';
+
+    // Mappa client → file gist
+    const CLIENT_FILES = {
+      maina: 'maina.json',
+    };
+
+    const params   = new URLSearchParams(location.search);
+    const clientId = params.get('client') || 'maina';
+    const gistFile = CLIENT_FILES[clientId] || 'maina.json';
+    const RAW      = `https://gist.githubusercontent.com/M1ch3l3Ga/${GIST_ID}/raw/${gistFile}`;
+
+    function formatNum(n) {
+      if (n == null) return '—';
+      return Number(n).toLocaleString('it-IT');
+    }
+    function fmtDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleString('it-IT', {
+        day:'2-digit', month:'2-digit', year:'numeric',
+        hour:'2-digit', minute:'2-digit', timeZone:'UTC'
+      });
+    }
+    function badge(perc) {
+      const cls = perc >= 99 ? 'ok' : perc >= 50 ? 'warn' : 'ko';
+      return `<span class="perc-badge ${cls}">${perc}%</span>`;
+    }
+
+    function renderModule(m) {
+      const pct = m.perc || 0;
+      const fillColor = pct >= 99 ? 'var(--color-ok)' : pct >= 50 ? 'var(--color-warn)' : 'var(--color-ko)';
+      return `
+      <div class="home-row">
+        <div class="home-row-header">
+          <div class="home-row-title">
+            <span class="icon">📊</span>${m.label}
+            ${m.ultimo_caricamento ? `<span class="home-last-load">· ${fmtDate(m.ultimo_caricamento)}</span>` : ''}
+          </div>
+          <div class="home-perc">${badge(pct)} elaborato</div>
+        </div>
+        <div class="home-kpi-row">
+          <div class="home-kpi tot"> <div class="label">Totale</div>       <div class="value">${formatNum(m.totale)}</div></div>
+          <div class="home-kpi ok">  <div class="label">Esito OK</div>     <div class="value">${formatNum(m.ok)}</div></div>
+          <div class="home-kpi ko">  <div class="label">Esito KO</div>     <div class="value">${formatNum(m.ko)}</div></div>
+          <div class="home-kpi warn"><div class="label">Da Elaborare</div> <div class="value">${formatNum(m.da_elaborare)}</div></div>
+          <div class="home-kpi elab"><div class="label">Elaborati</div>    <div class="value">${formatNum(m.elaborati)}</div></div>
+        </div>
+        <div class="home-progress-bg">
+          <div class="home-progress-fill" style="width:${pct}%; background:${fillColor}"></div>
+        </div>
+      </div>`;
+    }
+
+    async function load() {
+      try {
+        const r    = await fetch(RAW + '?t=' + Date.now());
+        const data = await r.json();
+
+        // Header
+        document.getElementById('header-title').textContent = 'Cruscotto — ' + clientId.charAt(0).toUpperCase() + clientId.slice(1);
+        document.getElementById('header-sub').textContent   = 'Snapshot: ' + fmtDate(data.timestamp);
+        document.getElementById('last-update').textContent  = 'Aggiornato: ' + fmtDate(data.timestamp);
+
+        // DB size badge
+        const badge = document.getElementById('db-size-badge');
+        const gb    = data.db_size_gb || 0;
+        badge.textContent = `DB: ${gb} GB`;
+        if (gb >= 100) badge.classList.add('db-size-alert');
+
+        // Modules
+        const main = document.getElementById('main');
+        main.innerHTML = `
+          <p class="section-title">Riepilogo elaborazione</p>
+          <div class="home-grid">${data.modules.map(renderModule).join('')}</div>`;
+
+      } catch(e) {
+        document.getElementById('main').innerHTML =
+          `<div class="error-wrap">⚠️ Impossibile caricare i dati.<br><small>${e.message}</small></div>`;
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>
